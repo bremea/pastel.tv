@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+	font-family: 'Mulish';
+	font-style: normal;
+	font-weight: normal;
+	src: url('/fonts/Mulish/static/Mulish-Regular.ttf');
+}
+
+@font-face {
+	font-family: 'Mulish';
+	font-style: italic;
+	font-weight: normal;
+	src: url('/fonts/Mulish/static/Mulish-Italic.ttf');
+}
+
+@font-face {
+	font-family: 'Mulish';
+	font-style: normal;
+	font-weight: bold;
+	src: url('/fonts/Mulish/static/Mulish-Bold.ttf');
+}
+
+@font-face {
+	font-family: 'Mulish';
+	font-style: italic;
+	font-weight: bold;
+	src: url('/fonts/Mulish/static/Mulish-BoldItalic.ttf');
+}
+
+* {
+	font-family: 'Mulish', 'Roboto', arial, sans-serif;
+	@apply text-white;
+}
+
+*:focus {
+	outline: none;
+}
+
+.fancy-bg {
+	background: conic-gradient(from 140.47deg at 46.52% 43.85%, #00D3FD 0deg, #5AFFA7 178.12deg, #00D3FD 360deg);
+}
+
+@layer base {
+	h1 {
+		@apply text-4xl font-bold;
+	}
+	h2 {
+		@apply text-xl;
+	}
+	body {
+		@apply m-0 bg-night w-full h-full min-h-screen overflow-x-hidden;
+	}
+}
