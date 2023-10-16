@@ -1,18 +1,22 @@
 use std::net::SocketAddr;
 
-use axum::{routing::get, Router, Extension};
-use tower_http::trace::{TraceLayer, DefaultMakeSpan};
+use axum::{routing::get, Extension, Router};
+use dotenv::dotenv;
+use tower_http::trace::{DefaultMakeSpan, TraceLayer};
+
 mod routes;
 mod util;
 
 #[tokio::main]
 async fn main() {
+    dotenv().ok();
+
     let database = util::db::connect().await.expect("DB Connection Failed!");
 
     let app: Router = Router::new()
         .nest("/api/v1", routes::router::api())
         //.route("/gateway/v1", get(gateway::ws::ws_handler))
-		.layer(
+        .layer(
             TraceLayer::new_for_http()
                 .make_span_with(DefaultMakeSpan::default().include_headers(true)),
         )
