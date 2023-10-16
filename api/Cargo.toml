@@ -1,0 +1,20 @@
+[package]
+name = "api"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+axum = { version = "0.6.18", features = ["macros", "headers", "ws"] }
+hmac = "0.12.1"
+jwt = "0.16.0"
+serde = "1.0.171"
+sha2 = "0.10.7"
+tokio = { version = "1.29.1", features = ["full"] }
+tower = "0.4.13"
+uuid = { version = "1.4.0", features = ["v4", "fast-rng", "macro-diagnostics"] }
+sqlx = { version = "0.7", features = [ "runtime-tokio", "tls-native-tls", "mysql", "macros", "time" ] }
+serde_json = "1.0.102"
+futures-util = "0.3.28"
+tower-http = {version = "0.4.1", features = ["trace"] }

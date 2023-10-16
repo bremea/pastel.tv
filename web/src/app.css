@@ -39,10 +39,6 @@
 	outline: none;
 }
 
-.fancy-bg {
-	background: conic-gradient(from 140.47deg at 46.52% 43.85%, #00D3FD 0deg, #5AFFA7 178.12deg, #00D3FD 360deg);
-}
-
 @layer base {
 	h1 {
 		@apply text-4xl font-bold;
