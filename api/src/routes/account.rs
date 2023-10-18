@@ -27,9 +27,8 @@ pub async fn check_email(
         return Err((StatusCode::BAD_REQUEST, Json(api_error_info)));
     }
 
-    let db_req = sqlx::query("SELECT 1 FROM users WHERE email = ?")
-        .bind(payload.email)
-        .execute(&database)
+    let db_req = sqlx::query!("SELECT email FROM users WHERE email = ?", payload.email)
+        .fetch_one(&database)
         .await;
 
     match db_req {

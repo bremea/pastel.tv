@@ -49,6 +49,9 @@ importers:
       svelte-check:
         specifier: ^3.4.3
         version: 3.4.3(postcss@8.4.31)(svelte@4.0.5)
+      svelte-remixicon:
+        specifier: ^2.0.0
+        version: 2.0.0(svelte@4.0.5)
       tailwindcss:
         specifier: ^3.3.3
         version: 3.3.3
@@ -2046,6 +2049,14 @@ packages:
       strip-indent: 3.0.0
       svelte: 4.0.5
       typescript: 5.2.2
+    dev: true
+
+  /svelte-remixicon@2.0.0(svelte@4.0.5):
+    resolution: {integrity: sha512-3Gkkn9/OAv2A5VKXaqYocyUzcLCqR0mAvkxgBQIDpwT+IieXkYLrQHKUKJs5mJ60UVo5yoGFrI2XyliNspZ3Vw==}
+    peerDependencies:
+      svelte: ^3.54.0 || ^4.0.0
+    dependencies:
+      svelte: 4.0.5
     dev: true
 
   /svelte@4.0.5:
