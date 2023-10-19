@@ -39,6 +39,15 @@
 	outline: none;
 }
 
+.layered-transition {
+	@apply grid;
+}
+
+.layered-transition > * {
+	grid-column: 1/2;
+	grid-row: 1/2;
+}
+
 @layer base {
 	h1 {
 		@apply text-4xl font-bold;

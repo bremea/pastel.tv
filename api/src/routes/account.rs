@@ -1,6 +1,6 @@
-use crate::util::{
-    auth::{self, auth_middleware, VerifyTokenResult},
-    errors::{ApiError, JsonIncoming},
+use crate::{
+    middleware::auth::{self, auth_middleware, VerifyTokenResult},
+    util::errors::{ApiError, JsonIncoming},
 };
 use axum::{
     extract::Path,
@@ -27,20 +27,22 @@ pub async fn check_email(
         return Err((StatusCode::BAD_REQUEST, Json(api_error_info)));
     }
 
-    let db_req = sqlx::query!("SELECT email FROM users WHERE email = ?", payload.email)
+    let db_req = sqlx::query!("SELECT auth_method FROM users WHERE email = ?", payload.email)
         .fetch_one(&database)
         .await;
 
     match db_req {
-        Ok(_) => {
+        Ok(res) => {
             let acc_match_res = CheckMailRes {
-                account_exists: true,
+                login_method: res.auth_method,
+				new_account: false
             };
             return Ok(Json(acc_match_res));
         }
         Err(sqlx::Error::RowNotFound) => {
             let acc_match_res = CheckMailRes {
-                account_exists: false,
+                login_method: 0,
+				new_account: true
             };
             return Ok(Json(acc_match_res));
         }
@@ -65,40 +67,6 @@ pub struct CheckEmailOptions {
 
 #[derive(Serialize)]
 pub struct CheckMailRes {
-    account_exists: bool,
-}
-
-#[derive(Serialize)]
-pub struct LinkData {
-    url: String,
-    id: String,
-    token: String,
-    expires: u64,
-    max_usage: u32,
-    max_size: u32,
-}
-
-#[derive(Serialize)]
-pub struct LinkDataDetailed {
-    url: String,
-    id: String,
-    owner: String,
-    expires: u64,
-    max_usage: u32,
-    max_size: u32,
-}
-
-#[derive(Serialize)]
-pub struct UserLinks {
-    links: Vec<LinkData>,
-}
-
-#[derive(Debug)]
-pub struct RawLinkData {
-    pub id: String,
-    pub owner: String,
-    pub expires: u64,
-    pub max_usage: u32,
-    pub max_size: u32,
-    pub created_at: sqlx::types::time::OffsetDateTime,
+    login_method: u8,
+	new_account: bool
 }

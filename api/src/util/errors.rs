@@ -34,7 +34,7 @@ impl IntoResponse for ApiErrorJsonHandler {
     fn into_response(self) -> axum::response::Response {
         let error_info = ApiError {
             error: true,
-            message: self.message,
+            message: "Invalid request".to_string(),
         };
         (self.status, axum::Json(error_info)).into_response()
     }

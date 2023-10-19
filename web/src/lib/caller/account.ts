@@ -1,8 +1,5 @@
-import type { EmailInfo } from "$lib/utils/types";
+import type { EmailInfo } from '$lib/utils/types';
+import { callApi } from './apiRequest';
 
-export async function checkEmail(email: string): Promise<EmailInfo> {
-	console.log(email)
-	return {
-		loginMethod: 'GOOGLE'
-	}
-}
+export const checkEmail = async (email: string) =>
+	await callApi<EmailInfo>('/account/exists', 'POST', { email: email });

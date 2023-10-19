@@ -1,10 +1,20 @@
 export interface ApiError {
-	error: boolean;
+	error: true;
 	message: string;
 }
 
+export type ApiResult<T> =
+	| ({
+			error: false | undefined;
+	  } & T)
+	| ApiError;
+
 export interface EmailInfo {
-	loginMethod: LoginMethod;
+	login_method: LoginMethod;
+	new_account: boolean;
 }
 
-export type LoginMethod = 'PASS' | 'GOOGLE'
+export enum LoginMethod {
+	PASSWORD,
+	GOOGLE
+};
