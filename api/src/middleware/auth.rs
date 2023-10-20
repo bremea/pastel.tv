@@ -11,8 +11,9 @@ use jwt::{SignWithKey, VerifyWithKey};
 use sha2::Sha256;
 use std::collections::BTreeMap;
 
-pub fn sign_jwt(id: String) -> String {
+pub fn sign_jwt(id: &String) -> String {
 	//! replace secret
+	//! fix this absolutely horrible code
     let key: Hmac<Sha256> = Hmac::new_from_slice(b"some-secret").unwrap();
     let mut claims = BTreeMap::new();
     claims.insert("id", id);
@@ -25,8 +26,9 @@ pub struct VerifyTokenResult {
     pub id: String,
 }
 
-pub fn verify_jwt(token_str: String) -> VerifyTokenResult {
+pub fn verify_jwt(token_str: &String) -> VerifyTokenResult {
 	//! replace secret
+	//! fix this absolutely horrible code
     let key: Hmac<Sha256> = Hmac::new_from_slice(b"some-secret").unwrap();
     let token_verify: Result<BTreeMap<String, String>, jwt::Error> =
         token_str.verify_with_key(&key);
@@ -59,7 +61,7 @@ where
         .await
         .map_err(|_| StatusCode::UNAUTHORIZED)?;
 
-	let verification = verify_jwt(auth.token().to_string());
+	let verification = verify_jwt(&auth.token().to_string());
 
     if !verification.valid {
         return Err(StatusCode::UNAUTHORIZED);

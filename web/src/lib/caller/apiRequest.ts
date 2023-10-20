@@ -2,7 +2,11 @@ import { API_URL } from '$lib/utils/constants';
 import type { ApiError, ApiResult } from '$lib/utils/types';
 import type { HttpMethod } from '@sveltejs/kit';
 
-export async function callApi<T>(route: string, method: HttpMethod, body?: object): Promise<ApiResult<T>> {
+export async function callApi<T>(
+	route: string,
+	method: HttpMethod,
+	body?: object
+): Promise<ApiResult<T> | undefined> {
 	const stringifiedBody = JSON.stringify(body);
 	const request = await fetch(`${API_URL}${route}`, {
 		method,
@@ -20,9 +24,13 @@ export async function callApi<T>(route: string, method: HttpMethod, body?: objec
 			return response;
 		}
 	} catch (e) {
-		return {
-			error: true,
-			message: 'Internal error'
-		} as ApiError;
+		if (request.status === 200) {
+			return;
+		} else {
+			return {
+				error: true,
+				message: 'Internal error'
+			} as ApiError;
+		}
 	}
 }

@@ -65,16 +65,48 @@ pub async fn add_db_email_verification(
     }
 }
 
+pub async fn verify_email(
+    email: &str,
+    code: &str,
+    database: &Pool<MySql>,
+) -> Result<(), (StatusCode, Json<ApiError>)> {
+    let db_req = sqlx::query!(
+        "SELECT email FROM email_verification WHERE email = ? AND code = ? AND expires > NOW()",
+        email,
+        code
+    )
+    .fetch_one(database)
+    .await;
+
+    match db_req {
+        Ok(_) => Ok(()),
+        Err(sqlx::Error::RowNotFound) => {
+            let api_error_info = ApiError {
+                error: true,
+                message: "Invalid code".to_string(),
+            };
+            return Err((StatusCode::BAD_REQUEST, Json(api_error_info)));
+        }
+        Err(_) => {
+            let api_error_info = ApiError {
+                error: true,
+                message: "Internal Error".to_string(),
+            };
+            return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(api_error_info)));
+        }
+    }
+}
+
 pub async fn send_verification_email(
     email: &str,
     code: &str,
     name: &str,
 ) -> Result<(), (StatusCode, Json<ApiError>)> {
-	let email_body = format!(
-		"Hey {name}! Your verification code for pastel.tv is {code}",
-		name = name,
-		code = code
-	);
+    let email_body = format!(
+        "Hey {name}! Your verification code for pastel.tv is {code}",
+        name = name,
+        code = code
+    );
     let email_message = ResendEmailData {
         from: SENDER_EMAIL.to_string(),
         to: email.to_string(),

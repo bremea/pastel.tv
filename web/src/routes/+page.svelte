@@ -12,7 +12,7 @@
 		'Enter your email to continue',
 		'Enter your password',
 		'Enter your name, and create a password',
-		'Check your email for a code'
+		'Check your email for a verification code'
 	];
 
 	let error: undefined | string;
@@ -23,7 +23,8 @@
 		email: '',
 		password: '',
 		confirmPassword: '',
-		name: ''
+		name: '',
+		otp: ''
 	};
 
 	async function runButtonClick() {
@@ -56,8 +57,8 @@
 			return;
 		}
 		const res = await caller.checkEmail(loginInfo.email);
-		if (res.error) {
-			error = res.message;
+		if (!res || res.error) {
+			error = res?.message;
 		} else {
 			if (res.new_account) loginStage = 2;
 			else loginStage = 1;
@@ -75,7 +76,7 @@
 		}
 
 		const res = await caller.sendEmailVerify(loginInfo.email, loginInfo.name);
-		if (res.error) {
+		if (res?.error) {
 			error = res.message;
 		} else {
 			loginStage = 3;
@@ -87,7 +88,21 @@
 	}
 
 	async function register() {
-		return;
+		if (loginInfo.otp === undefined || loginInfo.otp === '') {
+			error = 'Enter a code';
+			return;
+		}
+		const res = await caller.register(
+			loginInfo.email,
+			loginInfo.name,
+			loginInfo.password,
+			loginInfo.otp
+		);
+		if (!res || res.error) {
+			error = res?.message;
+		} else {
+			alert('acc created');
+		}
 	}
 </script>
 
@@ -137,7 +152,11 @@
 					</div>
 				{:else if loginStage == 3}
 					<div transition:slide class="space-y-4">
-						<NumberInput placeholder="Verification code" autocomplete="one-time-code" />
+						<TextInput
+							bind:value={loginInfo.otp}
+							placeholder="Verification code"
+							autocomplete="one-time-code"
+						/>
 					</div>
 				{/if}
 				<Button onClick={runButtonClick} {loading} disabled={loading}>Continue</Button>
