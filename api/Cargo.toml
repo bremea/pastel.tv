@@ -16,7 +16,8 @@ tower = "0.4.13"
 uuid = { version = "1.4.0", features = ["v4", "fast-rng", "macro-diagnostics"] }
 sqlx = { version = "0.7", features = [ "runtime-tokio", "tls-native-tls", "mysql", "macros", "time" ] }
 serde_json = "1.0.102"
-futures-util = "0.3.28"
 tower-http = {version = "0.4.1", features = ["trace", "cors"] }
 dotenv = "0.15.0"
+rand = "0.8.5"
 mailchecker = "5.0.9"
+reqwest = { version = "0.11", features = ["json"] }
