@@ -1,1 +1,1 @@
-pub const SENDER_EMAIL: &str = "pastel.tv <onboarding@resend.dev>";
+pub const SENDER_EMAIL: &str = "pastel.tv <noreply@pastel.tv>";
