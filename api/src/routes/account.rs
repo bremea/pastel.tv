@@ -47,7 +47,7 @@ pub async fn send_email_verification(
     );
 
     email::add_db_email_verification(&payload.email, &email_code, &database).await?;
-    //email::send_verification_email(&payload.email, &email_code, &payload.name).await?;
+    email::send_verification_email(&payload.email, &email_code, &payload.name).await?;
 
     Ok(())
 }
