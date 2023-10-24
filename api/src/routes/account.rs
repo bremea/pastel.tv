@@ -67,6 +67,8 @@ pub async fn login(
         ));
     }
 
+	// vaalidate pass
+
     let pass_valid =
         password::verify_password(&payload.email, &payload.password, &database).await?;
 
