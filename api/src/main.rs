@@ -1,12 +1,13 @@
 use std::net::SocketAddr;
 
-use axum::{routing::get, Extension, Router};
+use axum::{Extension, Router};
 use dotenv::dotenv;
 use tower_http::{
     cors::CorsLayer,
     trace::{DefaultMakeSpan, TraceLayer},
 };
 
+mod database;
 mod middleware;
 mod routes;
 mod util;
@@ -15,7 +16,9 @@ mod util;
 async fn main() {
     dotenv().ok();
 
-    let database = util::db::connect().await.expect("DB Connection Failed!");
+    let database = database::db::connect()
+        .await
+        .expect("DB Connection Failed!");
 
     let app: Router = Router::new()
         .nest("/api/v1", routes::router::api())

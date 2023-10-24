@@ -1,13 +1,15 @@
 use crate::{
+    database::{
+        email,
+        user::{self, User, UserFlags},
+    },
     middleware::auth::sign_jwt,
     util::{
-        email::{self, EmailStatus},
-        errors::{ApiError, JsonIncoming},
+        errors::{catch_internal_error, ApiError, JsonIncoming},
         password,
     },
 };
 use axum::{http::StatusCode, routing::post, Extension, Json, Router};
-use bitfield_struct::bitfield;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Pool};
@@ -17,21 +19,22 @@ pub async fn check_email(
     Extension(database): Extension<Pool<MySql>>,
     JsonIncoming(payload): JsonIncoming<CheckEmailOptions>,
 ) -> Result<Json<CheckMailRes>, (StatusCode, Json<ApiError>)> {
-    let email_check = email::check_db_for_email(&payload.email, &database).await;
-    match email_check {
-        Ok(res) => match res.status {
-            EmailStatus::AlreadyInUse => Ok(Json(CheckMailRes {
-                login_method: res.login_method,
-                new_account: false,
-            })),
-            EmailStatus::Available => Ok(Json(CheckMailRes {
-                login_method: 0,
-                new_account: true,
-            })),
-        },
-        Err(res) => {
-            return Err(res);
-        }
+    // check for legit email address
+    catch_internal_error(email::check_for_valid_email_address(&payload.email))?;
+
+    // query db for email
+    let try_get_user = catch_internal_error(user::get_user(&payload.email, &database).await)?;
+
+    // send result depending if email is registered already
+    match try_get_user {
+        Some(res) => Ok(Json(CheckMailRes {
+            login_method: res.auth_method,
+            new_account: false,
+        })),
+        None => Ok(Json(CheckMailRes {
+            login_method: 0,
+            new_account: true,
+        })),
     }
 }
 
@@ -39,15 +42,22 @@ pub async fn send_email_verification(
     Extension(database): Extension<Pool<MySql>>,
     JsonIncoming(payload): JsonIncoming<SendEmailVerificationOptions>,
 ) -> Result<(), (StatusCode, Json<ApiError>)> {
-    email::check_db_for_email(&payload.email, &database).await?;
+    // check for legit email address
+    catch_internal_error(email::check_for_valid_email_address(&payload.email))?;
 
+    // generate code
     let email_code = format!(
         "{:0>6}",
         rand::thread_rng().gen_range(0..999999).to_string()
     );
 
-    email::add_db_email_verification(&payload.email, &email_code, &database).await?;
-    email::send_verification_email(&payload.email, &email_code, &payload.name).await?;
+    // add code to db and send
+    catch_internal_error(
+        email::add_db_email_verification(&payload.email, &email_code, &database).await,
+    )?;
+    catch_internal_error(
+        email::send_verification_email(&payload.email, &email_code, &payload.name).await,
+    )?;
 
     Ok(())
 }
@@ -56,105 +66,110 @@ pub async fn login(
     Extension(database): Extension<Pool<MySql>>,
     JsonIncoming(payload): JsonIncoming<LoginOptions>,
 ) -> Result<Json<LoginResult>, (StatusCode, Json<ApiError>)> {
-    let email_check = email::check_db_for_email(&payload.email, &database).await?;
-    if email_check.status == EmailStatus::AlreadyInUse {
+    // get user with email
+    let user = match catch_internal_error(user::get_user(&payload.email, &database).await)? {
+        Some(some_user) => some_user,
+        None => {
+            return Err((
+                StatusCode::UNAUTHORIZED,
+                Json(ApiError {
+                    status: 401,
+                    error: true,
+                    message: "Invalid email or password".to_string(),
+                }),
+            ));
+        }
+    };
+
+    // check user has password set
+    let hashed_password = match user.password {
+        Some(pass) => pass,
+        None => {
+            return Err((
+                StatusCode::UNAUTHORIZED,
+                Json(ApiError {
+                    status: 401,
+                    error: true,
+                    message: "Invalid email or password".to_string(),
+                }),
+            ));
+        }
+    };
+
+    // check for valid password
+    if !catch_internal_error(password::verify_password(&payload.password, &hashed_password).await)?
+    {
         return Err((
-            StatusCode::CONFLICT,
+            StatusCode::UNAUTHORIZED,
             Json(ApiError {
+                status: 401,
                 error: true,
-                message: "Invalid email".to_string(),
+                message: "Invalid email or password".to_string(),
             }),
         ));
     }
 
-	// vaalidate pass
+    // sign JWT
+    let token = sign_jwt(&user.uuid);
 
-    let pass_valid =
-        password::verify_password(&payload.email, &payload.password, &database).await?;
-
-	if pass_valid == false {
-		Err((
-            StatusCode::FORBIDDEN,
-            Json(ApiError {
-                error: true,
-                message: "Incorrect password".to_string(),
-            }),
-        ))
-	}
-
-	
+    Ok(Json(LoginResult {
+        uuid: user.uuid,
+        token,
+    }))
 }
 
 pub async fn register_account(
     Extension(database): Extension<Pool<MySql>>,
     JsonIncoming(payload): JsonIncoming<RegisterOptions>,
 ) -> Result<Json<RegisterResult>, (StatusCode, Json<ApiError>)> {
-    let email_check = email::check_db_for_email(&payload.email, &database).await?;
-    if email_check.status == EmailStatus::AlreadyInUse {
+    // make sure email is available
+    if catch_internal_error(user::get_user(&payload.email, &database).await)?.is_some() {
         return Err((
             StatusCode::CONFLICT,
             Json(ApiError {
+                status: 409,
                 error: true,
                 message: "Invalid email".to_string(),
             }),
         ));
     }
 
-    email::verify_email(&payload.email, &payload.otp, &database).await?;
+    // check OTP is correct
+    catch_internal_error(email::verify_email(&payload.email, &payload.otp, &database).await)?;
 
-    let hashed_password = password::hash_password(&payload.password).await?;
+    // hash password
+    let hashed_password = catch_internal_error(password::hash_password(&payload.password).await)?;
 
+    // generate UUID and user flags
     let uuid = Uuid::new_v4().to_string();
     let flags = UserFlags::new()
         .with_email_verified(true)
         .with_developer(false);
 
-    let raw_flags: u8 = flags.into();
+    // sign JWT
     let token = sign_jwt(&uuid);
 
-    let db_req = sqlx::query!(
-        "INSERT INTO users (uuid, email, name, auth_method, password, flags) VALUES (?, ?, ?, 0, ?, ?)",
-        uuid,
-		payload.email,
-		payload.name,
-        hashed_password,
-		raw_flags
-    )
-    .execute(&database)
-    .await;
+    // add user to db
+    let new_user = User {
+        uuid: uuid.clone(),
+        email: payload.email,
+        name: payload.name,
+        auth_method: 0,
+        password: Some(hashed_password),
+        flags,
+    };
+    catch_internal_error(user::add_user(&new_user, &database).await)?;
 
-    match db_req {
-        Ok(_) => Ok(Json(RegisterResult { uuid, token })),
-        Err(sqlx::Error::RowNotFound) => {
-            let api_error_info = ApiError {
-                error: true,
-                message: "Invalid code".to_string(),
-            };
-            return Err((StatusCode::BAD_REQUEST, Json(api_error_info)));
-        }
-        Err(_) => {
-            let api_error_info = ApiError {
-                error: true,
-                message: "Internal Error".to_string(),
-            };
-            return Err((StatusCode::INTERNAL_SERVER_ERROR, Json(api_error_info)));
-        }
-    }
+    // return uuid and JWT
+    Ok(Json(RegisterResult { uuid, token }))
 }
 
 pub fn router() -> Router {
     return Router::new()
         .route("/exists", post(check_email))
         .route("/verify", post(send_email_verification))
-        .route("/new", post(register_account));
-}
-
-#[bitfield(u8)]
-pub struct UserFlags {
-    email_verified: bool,
-    developer: bool,
-    #[bits(6)]
-    _reserved: usize,
+        .route("/new", post(register_account))
+        .route("/login", post(login));
 }
 
 #[derive(Deserialize)]
