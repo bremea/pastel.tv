@@ -2,7 +2,6 @@
 	import * as caller from '$lib/caller/account';
 	import Button from '$lib/components/input/Button.svelte';
 	import EmailInput from '$lib/components/input/EmailInput.svelte';
-	import NumberInput from '$lib/components/input/NumberInput.svelte';
 	import PasswordInput from '$lib/components/input/PasswordInput.svelte';
 	import TextInput from '$lib/components/input/TextInput.svelte';
 	import Error from '$lib/components/misc/Error.svelte';
@@ -122,7 +121,7 @@
 			{#if error}
 				<Error>{error}</Error>
 			{/if}
-			<div class="w-64 space-y-4 pt-2">
+			<form class="w-64 space-y-4 pt-2">
 				{#if loginStage < 3}
 					<div transition:slide class="space-y-4">
 						<EmailInput bind:value={loginInfo.email} autocomplete="email" />
@@ -160,7 +159,7 @@
 					</div>
 				{/if}
 				<Button onClick={runButtonClick} {loading} disabled={loading}>Continue</Button>
-			</div>
+			</form>
 		</div>
 	</div>
 </div>
