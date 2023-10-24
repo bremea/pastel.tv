@@ -122,7 +122,7 @@ pub async fn send_verification_email(
         .send()
         .await;
 
-    match (resp) {
+    match resp {
         Ok(_) => Ok(()),
         Err(_) => {
             let api_error_info = ApiError {

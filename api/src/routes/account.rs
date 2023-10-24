@@ -3,10 +3,10 @@ use crate::{
     util::{
         email::{self, EmailStatus},
         errors::{ApiError, JsonIncoming},
+        password,
     },
 };
 use axum::{http::StatusCode, routing::post, Extension, Json, Router};
-use bcrypt::hash;
 use bitfield_struct::bitfield;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
@@ -52,6 +52,37 @@ pub async fn send_email_verification(
     Ok(())
 }
 
+pub async fn login(
+    Extension(database): Extension<Pool<MySql>>,
+    JsonIncoming(payload): JsonIncoming<LoginOptions>,
+) -> Result<Json<LoginResult>, (StatusCode, Json<ApiError>)> {
+    let email_check = email::check_db_for_email(&payload.email, &database).await?;
+    if email_check.status == EmailStatus::AlreadyInUse {
+        return Err((
+            StatusCode::CONFLICT,
+            Json(ApiError {
+                error: true,
+                message: "Invalid email".to_string(),
+            }),
+        ));
+    }
+
+    let pass_valid =
+        password::verify_password(&payload.email, &payload.password, &database).await?;
+
+	if pass_valid == false {
+		Err((
+            StatusCode::FORBIDDEN,
+            Json(ApiError {
+                error: true,
+                message: "Incorrect password".to_string(),
+            }),
+        ))
+	}
+
+	
+}
+
 pub async fn register_account(
     Extension(database): Extension<Pool<MySql>>,
     JsonIncoming(payload): JsonIncoming<RegisterOptions>,
@@ -69,19 +100,7 @@ pub async fn register_account(
 
     email::verify_email(&payload.email, &payload.otp, &database).await?;
 
-    let hash_fn = hash(&payload.password, 13);
-    let hashed_password = match hash_fn {
-        Ok(pass) => pass,
-        Err(_) => {
-            return Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ApiError {
-                    error: true,
-                    message: "Internal Error".to_string(),
-                }),
-            ));
-        }
-    };
+    let hashed_password = password::hash_password(&payload.password).await?;
 
     let uuid = Uuid::new_v4().to_string();
     let flags = UserFlags::new()
@@ -90,8 +109,6 @@ pub async fn register_account(
 
     let raw_flags: u8 = flags.into();
     let token = sign_jwt(&uuid);
-
-	println!("{}", raw_flags);
 
     let db_req = sqlx::query!(
         "INSERT INTO users (uuid, email, name, auth_method, password, flags) VALUES (?, ?, ?, 0, ?, ?)",
@@ -155,6 +172,18 @@ pub struct RegisterOptions {
     name: String,
     password: String,
     otp: String,
+}
+
+#[derive(Deserialize)]
+pub struct LoginOptions {
+    email: String,
+    password: String,
+}
+
+#[derive(Serialize)]
+pub struct LoginResult {
+    uuid: String,
+    token: String,
 }
 
 #[derive(Serialize)]
