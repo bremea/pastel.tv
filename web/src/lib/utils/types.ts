@@ -9,12 +9,14 @@ export type ApiResult<T> =
 	  } & T)
 	| ApiError;
 
-export interface EmailInfo {
-	login_method: LoginMethod;
-	new_account: boolean;
+export interface User {
+	name: string;
+	uuid: string;
+	email: string;
+	flags: number;
 }
 
 export enum LoginMethod {
 	PASSWORD,
 	GOOGLE
-};
+}

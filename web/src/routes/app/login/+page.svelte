@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import * as caller from '$lib/caller/account';
 	import Button from '$lib/components/input/Button.svelte';
 	import EmailInput from '$lib/components/input/EmailInput.svelte';
@@ -83,7 +84,17 @@
 	}
 
 	async function login() {
-		return;
+		if (loginInfo.password === undefined || loginInfo.password === '') {
+			error = 'Enter a password';
+			return;
+		}
+		const res = await caller.login(loginInfo.email, loginInfo.password);
+		if (!res || res.error) {
+			error = res?.message;
+		} else {
+			localStorage.setItem("token", res.token);
+			goto('/app');
+		}
 	}
 
 	async function register() {
@@ -100,7 +111,8 @@
 		if (!res || res.error) {
 			error = res?.message;
 		} else {
-			alert('acc created');
+			localStorage.setItem("token", res.token);
+			goto('/app');
 		}
 	}
 </script>
@@ -124,7 +136,7 @@
 			<form class="w-64 space-y-4 pt-2">
 				{#if loginStage < 3}
 					<div transition:slide class="space-y-4">
-						<EmailInput bind:value={loginInfo.email} autocomplete="email" />
+						<EmailInput bind:value={loginInfo.email} autocomplete="username" />
 						{#if loginStage == 1 || loginStage == 2}
 							<div transition:slide class="space-y-4">
 								{#if loginStage == 2}

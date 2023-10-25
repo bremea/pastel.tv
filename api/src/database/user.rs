@@ -3,9 +3,26 @@ use sqlx::{MySql, Pool};
 
 use crate::util::errors::ApiError;
 
-pub async fn get_user(email: &str, database: &Pool<MySql>) -> Result<Option<User>, ApiError> {
-	// fetch user from db
+pub async fn get_user_by_email(email: &str, database: &Pool<MySql>) -> Result<Option<User>, ApiError> {
+	// fetch user from db by email
     let db_req = sqlx::query_as!(User, "SELECT * FROM users WHERE email = ?", email)
+        .fetch_one(database)
+        .await;
+
+    match db_req {
+        Ok(user) => Ok(Some(user)),
+        Err(sqlx::Error::RowNotFound) => Ok(None),
+        Err(_) => Err(ApiError {
+			status: 500,
+            error: true,
+            message: "Internal Error".to_string(),
+        }),
+    }
+}
+
+pub async fn get_user_by_uuid(uuid: &str, database: &Pool<MySql>) -> Result<Option<User>, ApiError> {
+	// fetch user from db by uuid
+    let db_req = sqlx::query_as!(User, "SELECT * FROM users WHERE uuid = ?", uuid)
         .fetch_one(database)
         .await;
 

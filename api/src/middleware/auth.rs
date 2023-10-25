@@ -23,7 +23,7 @@ pub fn sign_jwt(id: &String) -> String {
 #[derive(Clone)]
 pub struct VerifyTokenResult {
     pub valid: bool,
-    pub id: String,
+    pub uuid: String,
 }
 
 pub fn verify_jwt(token_str: &String) -> VerifyTokenResult {
@@ -38,13 +38,13 @@ pub fn verify_jwt(token_str: &String) -> VerifyTokenResult {
             let id: &String = &sk["id"];
             return VerifyTokenResult {
                 valid: true,
-                id: id.to_string(),
+                uuid: id.to_string(),
             };
         }
         Err(_) => {
             return VerifyTokenResult {
                 valid: false,
-                id: "".to_string(),
+                uuid: "".to_string(),
             };
         }
     }

@@ -8,13 +8,23 @@ export async function callApi<T>(
 	body?: object
 ): Promise<ApiResult<T> | undefined> {
 	const stringifiedBody = JSON.stringify(body);
+
+	const headers: HeadersInit = {
+		'Content-Type': 'application/json'
+	};
+
+	// if auth token, add it in
+	const token = localStorage.getItem('token');
+	if (token != null) {
+		headers['Authorization'] = `Bearer ${token}`;
+	}
+
 	const request = await fetch(`${API_URL}${route}`, {
 		method,
-		body: stringifiedBody,
-		headers: {
-			'Content-Type': 'application/json'
-		}
+		headers,
+		body: stringifiedBody
 	});
+
 	try {
 		const response = (await request.json()) as ApiResult<T>;
 		if (response.error) {
