@@ -27,7 +27,7 @@ async fn main() {
                 .make_span_with(DefaultMakeSpan::default().include_headers(true)),
         )
         .layer(Extension(database))
-        .layer(CorsLayer::permissive());
+        .layer(CorsLayer::new().allow_credentials(true));
 
     axum::Server::bind(&"0.0.0.0:3000".parse().unwrap())
         .serve(app.into_make_service_with_connect_info::<SocketAddr>())

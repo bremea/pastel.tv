@@ -1,9 +1,7 @@
+use std::env;
+
 use crate::{
-    database::{
-        email,
-        tokens::generate_tokens,
-        user::{self, User, UserFlags},
-    },
+    database::{email, tokens, user},
     middleware::auth::{auth_middleware, VerifyTokenResult},
     util::{
         errors::{catch_internal_error, ApiError, JsonIncoming},
@@ -16,6 +14,7 @@ use axum::{
     routing::{get, post},
     Extension, Json, Router,
 };
+use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Pool};
@@ -70,9 +69,10 @@ pub async fn send_email_verification(
 }
 
 pub async fn login(
+    cookies: CookieJar,
     Extension(database): Extension<Pool<MySql>>,
     JsonIncoming(payload): JsonIncoming<LoginOptions>,
-) -> Result<Json<LoginResult>, (StatusCode, Json<ApiError>)> {
+) -> Result<(CookieJar, Json<LoginResult>), (StatusCode, Json<ApiError>)> {
     // get user with email
     let user = match catch_internal_error(user::get_user_by_email(&payload.email, &database).await)?
     {
@@ -118,16 +118,35 @@ pub async fn login(
     }
 
     // generate access and refresh tokens
-    let tokens = catch_internal_error(generate_tokens(user.uuid, &database).await)?;
+    let tokens = catch_internal_error(tokens::generate_tokens(user.uuid, &database).await)?;
 
-    // return uuid and JWT
-    Ok(Json(tokens))
+    // create refresh token cookie
+    let refresh_token_cookie = match env::var_os("DEVELOPMENT_MODE") {
+        Some(_) => Cookie::build("refresh_token", tokens.refresh_token)
+            .http_only(true)
+            .finish(),
+        None => Cookie::build("refresh_token", tokens.refresh_token)
+            .same_site(SameSite::Strict)
+            .secure(true)
+            .http_only(true)
+            .finish(),
+    };
+
+    // set refresh token cookie, and return access token and user id
+    Ok((
+        cookies.add(refresh_token_cookie),
+        Json(LoginResult {
+            access_token: tokens.access_token,
+            user_id: tokens.user_id,
+        }),
+    ))
 }
 
 pub async fn register_account(
+    cookies: CookieJar,
     Extension(database): Extension<Pool<MySql>>,
     JsonIncoming(payload): JsonIncoming<RegisterOptions>,
-) -> Result<Json<LoginResult>, (StatusCode, Json<ApiError>)> {
+) -> Result<(CookieJar, Json<LoginResult>), (StatusCode, Json<ApiError>)> {
     // make sure email is available
     if catch_internal_error(user::get_user_by_email(&payload.email, &database).await)?.is_some() {
         return Err((
@@ -148,12 +167,12 @@ pub async fn register_account(
 
     // generate UUID and user flags
     let uuid = Uuid::new_v4().to_string();
-    let flags = UserFlags::new()
+    let flags = user::UserFlags::new()
         .with_email_verified(true)
         .with_developer(false);
 
     // add user to db
-    let new_user = User {
+    let new_user = user::User {
         uuid: uuid.clone(),
         email: payload.email,
         name: payload.name,
@@ -164,10 +183,23 @@ pub async fn register_account(
     catch_internal_error(user::add_user(&new_user, &database).await)?;
 
     // generate access and refresh tokens
-    let tokens = catch_internal_error(generate_tokens(uuid, &database).await)?;
+    let tokens = catch_internal_error(tokens::generate_tokens(new_user.uuid, &database).await)?;
 
-    // return uuid and JWT
-    Ok(Json(tokens))
+    // create refresh token cookie
+    let refresh_token_cookie = Cookie::build("refresh_token", tokens.refresh_token)
+        .same_site(SameSite::Strict)
+        .secure(true)
+        .http_only(true)
+        .finish();
+
+    // set refresh token cookie, and return access token and user id
+    Ok((
+        cookies.add(refresh_token_cookie),
+        Json(LoginResult {
+            access_token: tokens.access_token,
+            user_id: tokens.user_id,
+        }),
+    ))
 }
 
 pub async fn current_user(
@@ -203,16 +235,48 @@ pub async fn current_user(
 
 pub async fn get_tokens(
     Extension(database): Extension<Pool<MySql>>,
-) -> Result<Json<PartialUser>, (StatusCode, Json<ApiError>)> {
+    cookies: CookieJar,
+) -> Result<(CookieJar, Json<LoginResult>), (StatusCode, Json<ApiError>)> {
+    let refresh_token = match cookies.get("refresh_token") {
+        Some(cookie) => cookie.value(),
+        None => {
+            return Err((
+                StatusCode::UNAUTHORIZED,
+                Json(ApiError {
+                    status: 401,
+                    error: true,
+                    message: "Missing refresh token".to_string(),
+                }),
+            ))
+        }
+    };
 
+    // get new tokens
+    let new_tokens =
+        catch_internal_error(tokens::login_with_refresh_token(refresh_token, &database).await)?;
+
+    // create refresh token cookie
+    let refresh_token_cookie = Cookie::build("refresh_token", new_tokens.refresh_token)
+        .same_site(SameSite::Strict)
+        .secure(true)
+        .http_only(true)
+        .finish();
+
+    // set refresh token cookie, and return access token and user id
+    Ok((
+        cookies.add(refresh_token_cookie),
+        Json(LoginResult {
+            access_token: new_tokens.access_token,
+            user_id: new_tokens.user_id,
+        }),
+    ))
 }
-
 
 pub fn router() -> Router {
     return Router::new()
         .route("/", get(current_user))
         .layer(middleware::from_fn(auth_middleware))
-		.route("/token", get(get_tokens))
+        .route("/token", get(get_tokens))
         .route("/exists", post(check_email))
         .route("/verify", post(send_email_verification))
         .route("/new", post(register_account))
@@ -246,7 +310,6 @@ pub struct LoginOptions {
 
 #[derive(Serialize)]
 pub struct LoginResult {
-    pub refresh_token: String,
     pub access_token: String,
     pub user_id: String,
 }

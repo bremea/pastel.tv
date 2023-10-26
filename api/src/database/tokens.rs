@@ -3,7 +3,7 @@ use sha2::{Digest, Sha256};
 use sqlx::{MySql, Pool};
 use uuid::Uuid;
 
-use crate::{middleware::auth::sign_jwt, routes::account::LoginResult, util::errors::ApiError};
+use crate::{middleware::auth::sign_jwt, util::errors::ApiError};
 
 pub async fn new_refresh_token(user_id: &str, database: &Pool<MySql>) -> Result<String, ApiError> {
     // generate token uuid
@@ -37,7 +37,7 @@ pub async fn new_refresh_token(user_id: &str, database: &Pool<MySql>) -> Result<
 pub async fn login_with_refresh_token(
     value: &str,
     database: &Pool<MySql>,
-) -> Result<LoginResult, ApiError> {
+) -> Result<AuthTokens, ApiError> {
     // check if refresh token is valid
     let find_refresh_token = sqlx::query!(
         "SELECT user_id FROM refresh_tokens WHERE token = ? AND revoked = FALSE AND expires > NOW()",
@@ -65,10 +65,10 @@ pub async fn login_with_refresh_token(
         }
     };
 
-	// revoke this token
-	revoke_refresh_token(value, database).await?;
+    // revoke this token
+    revoke_refresh_token(value, database).await?;
 
-	// generate new tokens
+    // generate new tokens
     let login_result = generate_tokens(user_id, database).await?;
     Ok(login_result)
 }
@@ -76,13 +76,13 @@ pub async fn login_with_refresh_token(
 pub async fn generate_tokens(
     user_id: String,
     database: &Pool<MySql>,
-) -> Result<LoginResult, ApiError> {
+) -> Result<AuthTokens, ApiError> {
     // generate new refresh token
     let refresh_token = new_refresh_token(&user_id, database).await?;
     // generate new access token
     let access_token = sign_jwt(&user_id);
 
-    Ok(LoginResult {
+    Ok(AuthTokens {
         refresh_token,
         access_token,
         user_id,
@@ -92,7 +92,7 @@ pub async fn generate_tokens(
 pub async fn revoke_refresh_token(value: &str, database: &Pool<MySql>) -> Result<(), ApiError> {
     // mark refresh token as revoked
     let db_req = sqlx::query!(
-        "UPDATE refresh_tokens SET revoked = TRUE WHERE refresh_token = ? AND revoked = FALSE AND expires > NOW()",
+        "UPDATE refresh_tokens SET revoked = TRUE WHERE token = ? AND revoked = FALSE AND expires > NOW()",
         value
     )
     .execute(database)
@@ -100,10 +100,16 @@ pub async fn revoke_refresh_token(value: &str, database: &Pool<MySql>) -> Result
 
     match db_req {
         Ok(_) => Ok(()),
-        Err(_) => Err(ApiError {
+        Err(e) => Err(ApiError {
             status: 500,
             error: true,
             message: "Internal error".to_string(),
         }),
     }
+}
+
+pub struct AuthTokens {
+    pub refresh_token: String,
+    pub access_token: String,
+    pub user_id: String,
 }

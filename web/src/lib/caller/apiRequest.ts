@@ -1,12 +1,15 @@
+import { accessToken } from '$lib/context/context';
 import { API_URL } from '$lib/utils/constants';
 import type { ApiError, ApiResult } from '$lib/utils/types';
 import type { HttpMethod } from '@sveltejs/kit';
+import { get } from 'svelte/store';
 
 export async function callApi<T>(
 	route: string,
 	method: HttpMethod,
-	body?: object
-): Promise<ApiResult<T> | undefined> {
+	body?: object,
+	options?: RequestInit
+): Promise<ApiResult<T>> {
 	const stringifiedBody = JSON.stringify(body);
 
 	const headers: HeadersInit = {
@@ -14,15 +17,16 @@ export async function callApi<T>(
 	};
 
 	// if auth token, add it in
-	const token = localStorage.getItem('token');
-	if (token != null) {
+	const token = get(accessToken);
+	if (token) {
 		headers['Authorization'] = `Bearer ${token}`;
 	}
 
 	const request = await fetch(`${API_URL}${route}`, {
 		method,
 		headers,
-		body: stringifiedBody
+		body: stringifiedBody,
+		...options
 	});
 
 	try {
@@ -35,7 +39,9 @@ export async function callApi<T>(
 		}
 	} catch (e) {
 		if (request.status === 200) {
-			return;
+			return {
+				error: false
+			} as ApiResult<T>;
 		} else {
 			return {
 				error: true,

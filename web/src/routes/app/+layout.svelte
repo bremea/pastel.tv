@@ -1,43 +1,46 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
-	import { beforeNavigate, goto } from '$app/navigation';
-	import { page } from '$app/stores';
-	import { me } from '$lib/caller/account';
-	import { currentUser } from '$lib/context/context';
-	import type { BeforeNavigate } from '@sveltejs/kit';
+	import { goto } from '$app/navigation';
+	import { accessToken, currentUser } from '$lib/context/context';
+	import { getAccessToken, getMe } from '$lib/caller/account';
+	import { get } from 'svelte/store';
+	import { onMount } from 'svelte';
 
 	let loading = true;
 
-	const testForValidNavigation = async (navigation?: BeforeNavigate) => {
-		if (
-			$currentUser == undefined &&
-			((navigation && navigation.to?.url.pathname != '/app/login') ||
-				$page.url.pathname != '/app/login')
-		) {
-			navigation?.cancel();
+	onMount(async () => {
+		if (!browser || !loading) return;
+		if (!get(accessToken)) {
+			try {
+				let accessTokenRequest = await getAccessToken();
+				if (accessTokenRequest.error) {
+					throw new Error(accessTokenRequest.message);
+				} else {
+					accessToken.set(accessTokenRequest?.access_token);
+				}
+			} catch (_) {
+				await goto('/app/login');
+				loading = false;
+				return;
+			}
+		}
+
+		const me = await getMe();
+		if (me.error) {
 			await goto('/app/login');
+			loading = false;
 			return;
 		}
-
-		let fetchUser = await me();
-		if (!fetchUser || fetchUser?.error) {
-			navigation?.cancel();
-			await goto('/app/login');
-		} else {
-			currentUser.set(fetchUser);
-		}
-	};
-
-	beforeNavigate(testForValidNavigation);
-
-	if (loading && browser) {
-		testForValidNavigation();
+		console.log(me);
+		currentUser.set(me);
 		loading = false;
-	}
+	});
 </script>
 
 <div class="w-full h-full min-h-screen bg-night relative flex flex-col items-center justify-center">
-	{#if !loading}
+	{#if loading}
+		<p>Loading</p>
+	{:else}
 		<slot />
 	{/if}
 </div>

@@ -13,8 +13,10 @@ export const register = async (email: string, name: string, password: string, ot
 export const login = async (email: string, password: string) =>
 	await callApi<LoginResult>('/account/login', 'POST', { email, password });
 
-export const me = async () =>
-	await callApi<User>('/account', 'GET');
+export const getAccessToken = async () =>
+	await callApi<LoginResult>('/account/token', 'GET', undefined, { credentials: 'include' });
+
+export const getMe = async () => await callApi<User>('/account', 'GET');
 
 export interface EmailInfo {
 	login_method: LoginMethod;
@@ -22,6 +24,6 @@ export interface EmailInfo {
 }
 
 export interface LoginResult {
-	uuid: string;
-	token: string;
+	user_id: string;
+	access_token: string;
 }

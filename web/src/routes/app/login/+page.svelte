@@ -6,6 +6,7 @@
 	import PasswordInput from '$lib/components/input/PasswordInput.svelte';
 	import TextInput from '$lib/components/input/TextInput.svelte';
 	import Error from '$lib/components/misc/Error.svelte';
+	import { accessToken } from '$lib/context/context';
 	import { fade, scale, slide } from 'svelte/transition';
 
 	const helperText = [
@@ -93,7 +94,7 @@
 		if (!res || res.error) {
 			error = res?.message;
 		} else {
-			localStorage.setItem('token', res.token);
+			accessToken.set(res.access_token);
 			navigating = true;
 			await goto('/app/launch');
 		}
@@ -113,7 +114,7 @@
 		if (!res || res.error) {
 			error = res?.message;
 		} else {
-			localStorage.setItem('token', res.token);
+			accessToken.set(res.access_token);
 			navigating = true;
 			await goto('/app/launch');
 		}
