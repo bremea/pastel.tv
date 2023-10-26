@@ -35,10 +35,6 @@
 	@apply text-white;
 }
 
-*:focus {
-	outline: none;
-}
-
 .layered-transition {
 	@apply grid;
 }
@@ -49,6 +45,10 @@
 }
 
 @layer base {
+	*:focus {
+		@apply outline-none;
+	}
+
 	h1 {
 		@apply text-4xl font-bold;
 	}

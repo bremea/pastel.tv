@@ -17,6 +17,7 @@
 
 	let error: undefined | string;
 	let loading = false;
+	let navigating = false;
 
 	let loginStage = 0;
 	let loginInfo = {
@@ -48,7 +49,7 @@
 				break;
 			}
 		}
-		loading = false;
+		if (!navigating) loading = false;
 	}
 
 	async function getEmailInfo() {
@@ -92,8 +93,9 @@
 		if (!res || res.error) {
 			error = res?.message;
 		} else {
-			localStorage.setItem("token", res.token);
-			goto('/app');
+			localStorage.setItem('token', res.token);
+			navigating = true;
+			await goto('/app/launch');
 		}
 	}
 
@@ -111,67 +113,63 @@
 		if (!res || res.error) {
 			error = res?.message;
 		} else {
-			localStorage.setItem("token", res.token);
-			goto('/app');
+			localStorage.setItem('token', res.token);
+			navigating = true;
+			await goto('/app/launch');
 		}
 	}
 </script>
 
-<div class="w-full h-screen bg-gradient-to-r from-uranian-blue to-celadon pb-1.5">
-	<div class="w-full h-full flex items-center justify-center bg-night flex-col">
-		<div class="space-y-4 flex flex-col items-center">
-			<h1 class="text-carnation-pink">pastel.tv</h1>
-
-			<div class="layered-transition text-center">
-				{#each helperText as textItem, i}
-					{#if loginStage == i}
-						<p out:fade in:fade={{ delay: 500 }}>{textItem}</p>
-					{/if}
-				{/each}
-			</div>
-
-			{#if error}
-				<Error>{error}</Error>
+<div class="space-y-4 flex flex-col items-center absolute" transition:fade>
+	<h1 class="text-carnation-pink">pastel.tv</h1>
+	<div class="layered-transition text-center">
+		{#each helperText as textItem, i}
+			{#if loginStage == i}
+				<p out:fade in:fade={{ delay: 500 }}>{textItem}</p>
 			{/if}
-			<form class="w-64 space-y-4 pt-2">
-				{#if loginStage < 3}
+		{/each}
+	</div>
+
+	{#if error}
+		<Error>{error}</Error>
+	{/if}
+	<form class="w-64 space-y-4 pt-2">
+		{#if loginStage < 3}
+			<div transition:slide class="space-y-4">
+				<EmailInput bind:value={loginInfo.email} autocomplete="username" />
+				{#if loginStage == 1 || loginStage == 2}
 					<div transition:slide class="space-y-4">
-						<EmailInput bind:value={loginInfo.email} autocomplete="username" />
-						{#if loginStage == 1 || loginStage == 2}
-							<div transition:slide class="space-y-4">
-								{#if loginStage == 2}
-									<TextInput
-										bind:value={loginInfo.name}
-										placeholder="Your name"
-										autocomplete="nickname"
-									/>
-								{/if}
-								<PasswordInput
-									bind:value={loginInfo.password}
-									placeholder="Password"
-									autocomplete={loginStage == 2 ? 'new-password' : 'current-password'}
-								/>
-								{#if loginStage == 2}
-									<PasswordInput
-										bind:value={loginInfo.confirmPassword}
-										placeholder="Confirm password"
-										autocomplete="new-password"
-									/>
-								{/if}
-							</div>
+						{#if loginStage == 2}
+							<TextInput
+								bind:value={loginInfo.name}
+								placeholder="Your name"
+								autocomplete="nickname"
+							/>
+						{/if}
+						<PasswordInput
+							bind:value={loginInfo.password}
+							placeholder="Password"
+							autocomplete={loginStage == 2 ? 'new-password' : 'current-password'}
+						/>
+						{#if loginStage == 2}
+							<PasswordInput
+								bind:value={loginInfo.confirmPassword}
+								placeholder="Confirm password"
+								autocomplete="new-password"
+							/>
 						{/if}
 					</div>
-				{:else if loginStage == 3}
-					<div transition:slide class="space-y-4">
-						<TextInput
-							bind:value={loginInfo.otp}
-							placeholder="Verification code"
-							autocomplete="one-time-code"
-						/>
-					</div>
 				{/if}
-				<Button onClick={runButtonClick} {loading} disabled={loading}>Continue</Button>
-			</form>
-		</div>
-	</div>
+			</div>
+		{:else if loginStage == 3}
+			<div transition:slide class="space-y-4">
+				<TextInput
+					bind:value={loginInfo.otp}
+					placeholder="Verification code"
+					autocomplete="one-time-code"
+				/>
+			</div>
+		{/if}
+		<Button onClick={runButtonClick} {loading} disabled={loading}>Continue</Button>
+	</form>
 </div>
