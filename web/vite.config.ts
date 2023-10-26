@@ -1,6 +1,11 @@
-import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
+import { sveltekit } from '@sveltejs/kit/vite';
 
 export default defineConfig({
-	plugins: [sveltekit()]
+	plugins: [sveltekit()],
+	server: {
+		proxy: {
+			'/api': 'http://localhost:3000'
+		}
+	}
 });
