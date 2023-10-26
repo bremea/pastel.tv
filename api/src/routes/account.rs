@@ -1,9 +1,10 @@
 use crate::{
     database::{
         email,
+        tokens::generate_tokens,
         user::{self, User, UserFlags},
     },
-    middleware::auth::{auth_middleware, sign_jwt, VerifyTokenResult},
+    middleware::auth::{auth_middleware, VerifyTokenResult},
     util::{
         errors::{catch_internal_error, ApiError, JsonIncoming},
         password,
@@ -28,7 +29,8 @@ pub async fn check_email(
     catch_internal_error(email::check_for_valid_email_address(&payload.email))?;
 
     // query db for email
-    let try_get_user = catch_internal_error(user::get_user_by_email(&payload.email, &database).await)?;
+    let try_get_user =
+        catch_internal_error(user::get_user_by_email(&payload.email, &database).await)?;
 
     // send result depending if email is registered already
     match try_get_user {
@@ -72,7 +74,8 @@ pub async fn login(
     JsonIncoming(payload): JsonIncoming<LoginOptions>,
 ) -> Result<Json<LoginResult>, (StatusCode, Json<ApiError>)> {
     // get user with email
-    let user = match catch_internal_error(user::get_user_by_email(&payload.email, &database).await)? {
+    let user = match catch_internal_error(user::get_user_by_email(&payload.email, &database).await)?
+    {
         Some(some_user) => some_user,
         None => {
             return Err((
@@ -114,19 +117,17 @@ pub async fn login(
         ));
     }
 
-    // sign JWT
-    let token = sign_jwt(&user.uuid);
+    // generate access and refresh tokens
+    let tokens = catch_internal_error(generate_tokens(user.uuid, &database).await)?;
 
-    Ok(Json(LoginResult {
-        uuid: user.uuid,
-        token,
-    }))
+    // return uuid and JWT
+    Ok(Json(tokens))
 }
 
 pub async fn register_account(
     Extension(database): Extension<Pool<MySql>>,
     JsonIncoming(payload): JsonIncoming<RegisterOptions>,
-) -> Result<Json<RegisterResult>, (StatusCode, Json<ApiError>)> {
+) -> Result<Json<LoginResult>, (StatusCode, Json<ApiError>)> {
     // make sure email is available
     if catch_internal_error(user::get_user_by_email(&payload.email, &database).await)?.is_some() {
         return Err((
@@ -151,9 +152,6 @@ pub async fn register_account(
         .with_email_verified(true)
         .with_developer(false);
 
-    // sign JWT
-    let token = sign_jwt(&uuid);
-
     // add user to db
     let new_user = User {
         uuid: uuid.clone(),
@@ -165,8 +163,11 @@ pub async fn register_account(
     };
     catch_internal_error(user::add_user(&new_user, &database).await)?;
 
+    // generate access and refresh tokens
+    let tokens = catch_internal_error(generate_tokens(uuid, &database).await)?;
+
     // return uuid and JWT
-    Ok(Json(RegisterResult { uuid, token }))
+    Ok(Json(tokens))
 }
 
 pub async fn current_user(
@@ -174,19 +175,20 @@ pub async fn current_user(
     Extension(database): Extension<Pool<MySql>>,
 ) -> Result<Json<PartialUser>, (StatusCode, Json<ApiError>)> {
     // get current user
-    let user = match catch_internal_error(user::get_user_by_uuid(&verification.uuid, &database).await)? {
-        Some(some_user) => some_user,
-        None => {
-            return Err((
-                StatusCode::BAD_REQUEST,
-                Json(ApiError {
-                    status: 400,
-                    error: true,
-                    message: "No such user".to_string(),
-                }),
-            ))
-        }
-    };
+    let user =
+        match catch_internal_error(user::get_user_by_uuid(&verification.uuid, &database).await)? {
+            Some(some_user) => some_user,
+            None => {
+                return Err((
+                    StatusCode::BAD_REQUEST,
+                    Json(ApiError {
+                        status: 400,
+                        error: true,
+                        message: "No such user".to_string(),
+                    }),
+                ))
+            }
+        };
 
     // convert to partial user result
     let partial_user = PartialUser {
@@ -199,10 +201,18 @@ pub async fn current_user(
     Ok(Json(partial_user))
 }
 
+pub async fn get_tokens(
+    Extension(database): Extension<Pool<MySql>>,
+) -> Result<Json<PartialUser>, (StatusCode, Json<ApiError>)> {
+
+}
+
+
 pub fn router() -> Router {
     return Router::new()
         .route("/", get(current_user))
         .layer(middleware::from_fn(auth_middleware))
+		.route("/token", get(get_tokens))
         .route("/exists", post(check_email))
         .route("/verify", post(send_email_verification))
         .route("/new", post(register_account))
@@ -236,14 +246,9 @@ pub struct LoginOptions {
 
 #[derive(Serialize)]
 pub struct LoginResult {
-    uuid: String,
-    token: String,
-}
-
-#[derive(Serialize)]
-pub struct RegisterResult {
-    uuid: String,
-    token: String,
+    pub refresh_token: String,
+    pub access_token: String,
+    pub user_id: String,
 }
 
 #[derive(Serialize)]
