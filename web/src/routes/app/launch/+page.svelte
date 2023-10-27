@@ -20,7 +20,7 @@
 		{
 			name: 'Twitch',
 			icon: 'TwitchLogo.png'
-		}
+		},
 	];
 
 	const onAppSelect = async (id: number) => {
@@ -29,16 +29,14 @@
 </script>
 
 <div in:fade={{ delay: 500 }} class="absolute w-full h-full pt-24 flex flex-col items-center">
-	<div class="text-center flex flex-col justify-center space-y-2" out:fade>
+	<div class="text-center flex flex-col justify-center space-y-2 mb-12" out:fade>
 		<h1>Hi, {$currentUser?.name}!</h1>
 		<p class="text-xl">What are we watching today?</p>
 	</div>
-	<div
-		class="py-24 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 items-center w-full"
-	>
+	<div class="p-8 flex flex-wrap justify-center gap-8">
 		{#each apps as app, i}
 			<div
-				class="w-full h-full flex items-center justify-center"
+				class="flex items-center justify-center"
 				in:scale|global={{ delay: 600 + 100 * i }}
 				out:scale|global={{ delay: 100 * i }}
 			>
