@@ -272,6 +272,24 @@ pub async fn get_tokens(
     ))
 }
 
+pub async fn logout(cookies: CookieJar) -> Result<CookieJar, (StatusCode, Json<ApiError>)> {
+    let refresh_token = match cookies.get("refresh_token") {
+        Some(cookie) => cookie.clone(),
+        None => {
+            return Err((
+                StatusCode::UNAUTHORIZED,
+                Json(ApiError {
+                    status: 401,
+                    error: true,
+                    message: "Missing refresh token".to_string(),
+                }),
+            ))
+        }
+    };
+
+    Ok(cookies.remove(refresh_token))
+}
+
 pub fn router() -> Router {
     return Router::new()
         .route("/", get(current_user))
@@ -280,7 +298,8 @@ pub fn router() -> Router {
         .route("/exists", post(check_email))
         .route("/verify", post(send_email_verification))
         .route("/new", post(register_account))
-        .route("/login", post(login));
+        .route("/login", post(login))
+        .route("/logout", post(logout));
 }
 
 #[derive(Deserialize)]
