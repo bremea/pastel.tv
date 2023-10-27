@@ -100,7 +100,7 @@ pub async fn revoke_refresh_token(value: &str, database: &Pool<MySql>) -> Result
 
     match db_req {
         Ok(_) => Ok(()),
-        Err(e) => Err(ApiError {
+        Err(_) => Err(ApiError {
             status: 500,
             error: true,
             message: "Internal error".to_string(),
