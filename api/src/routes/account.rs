@@ -272,6 +272,7 @@ pub async fn get_tokens(
     ))
 }
 
+
 pub async fn logout(cookies: CookieJar) -> Result<CookieJar, (StatusCode, Json<ApiError>)> {
     let refresh_token = match cookies.get("refresh_token") {
         Some(cookie) => cookie.clone(),
