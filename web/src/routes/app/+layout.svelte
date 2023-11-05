@@ -31,7 +31,6 @@
 			loading = false;
 			return;
 		}
-		console.log(me);
 		currentUser.set(me);
 		loading = false;
 	});
