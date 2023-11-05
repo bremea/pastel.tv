@@ -1,8 +1,18 @@
+/* eslint-disable */
+const plugin = require('tailwindcss/plugin')
 /** @type {import('tailwindcss').Config} */
 export default {
 	content: ['./src/**/*.{html,js,svelte,ts}'],
 	theme: {
 		extend: {
+			width: {
+				'app-icon': '256px',
+				'1.5-app-icon': '384px',
+			},
+			height: {
+				'app-icon': '100px',
+				'.75-app-icon': '75px'
+			},
 			colors: {
 				'carnation-pink': {
 					DEFAULT: '#ff99c9',
@@ -59,13 +69,20 @@ export default {
 					300: '#0c0c0c',
 					400: '#101111',
 					500: '#141515',
+					550: '#2b2d2d',
 					600: '#424545',
 					700: '#707575',
 					800: '#9fa3a3',
 					900: '#cfd1d1'
-				},
+				}
 			}
 		}
 	},
-	plugins: []
+	plugins: [
+		plugin(function ({ addVariant }) {
+			addVariant('optional', '&:optional');
+			addVariant('hocus', ['&:hover', '&:focus']);
+			addVariant('inverted-colors', '@media (inverted-colors: inverted)');
+		})
+	]
 };

@@ -13,7 +13,7 @@
 </script>
 
 <button
-	class="rounded-full w-72 h-28 bg-black flex items-center justify-center p-8 bg-cover bg-no-repeat bg-center outline outline-none hover:outline-4 hover:outline-carnation-pink focus:outline-carnation-pink focus:outline-4 border-4 border-night transition-all active:scale-90 active:outline-0"
+	class="rounded-full w-app-icon h-app-icon bg-black flex items-center justify-center bg-cover bg-no-repeat bg-center outline outline-none hover:outline-4 hover:outline-carnation-pink focus:outline-carnation-pink focus:outline-4 border-4 border-night transition-all active:scale-90 active:outline-0"
 	bind:this={icon}
 	on:click={() => onSelect(id)}
 />
