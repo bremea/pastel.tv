@@ -2,7 +2,7 @@ use serde::Serialize;
 use sqlx::{MySql, Pool};
 use std::env;
 
-use crate::util::{consts::SENDER_EMAIL, errors::ApiError};
+use utils::{consts::SENDER_EMAIL, errors::ApiError};
 
 pub fn check_for_valid_email_address(email: &str) -> Result<(), ApiError> {
 	// check email is legit (not spam or 10 min mail)

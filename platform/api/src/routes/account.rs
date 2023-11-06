@@ -1,13 +1,6 @@
 use std::env;
 
-use crate::{
-    database::{email, tokens, user},
-    middleware::auth::{auth_middleware, VerifyTokenResult},
-    util::{
-        errors::{catch_internal_error, ApiError, JsonIncoming},
-        password,
-    },
-};
+use crate::middleware::auth::auth_middleware;
 use axum::{
     http::StatusCode,
     middleware,
@@ -15,9 +8,14 @@ use axum::{
     Extension, Json, Router,
 };
 use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
+use database::{email, tokens, user};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Pool};
+use utils::{
+    errors::{catch_internal_error, ApiError, JsonIncoming},
+    password, jwt::VerifyTokenResult,
+};
 use uuid::Uuid;
 
 pub async fn check_email(
@@ -271,7 +269,6 @@ pub async fn get_tokens(
         }),
     ))
 }
-
 
 pub async fn logout(cookies: CookieJar) -> Result<CookieJar, (StatusCode, Json<ApiError>)> {
     let refresh_token = match cookies.get("refresh_token") {

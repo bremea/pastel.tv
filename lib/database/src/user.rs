@@ -1,7 +1,7 @@
 use bitfield_struct::bitfield;
 use sqlx::{MySql, Pool};
 
-use crate::util::errors::ApiError;
+use utils::errors::ApiError;
 
 pub async fn get_user_by_email(email: &str, database: &Pool<MySql>) -> Result<Option<User>, ApiError> {
 	// fetch user from db by email

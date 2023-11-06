@@ -7,16 +7,14 @@ use tower_http::{
     trace::{DefaultMakeSpan, TraceLayer},
 };
 
-mod database;
 mod middleware;
 mod routes;
-mod util;
 
 #[tokio::main]
 async fn main() {
     dotenv().ok();
 
-    let database = database::db::connect()
+    let database = database::connection::new()
         .await
         .expect("DB Connection Failed!");
 

@@ -1,0 +1,18 @@
+[package]
+name = "database"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+sqlx.workspace = true
+serde.workspace = true
+utils.workspace = true
+reqwest.workspace = true
+mailchecker = "5.0.9"
+hmac.workspace = true
+sha2.workspace = true
+uuid.workspace = true
+base64ct = "1.6.0"
+bitfield-struct.workspace = true

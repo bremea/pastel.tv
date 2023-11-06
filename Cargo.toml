@@ -1,5 +1,16 @@
 [workspace]
+members = ["platform/*", "lib/*"]
 
-members = [
-    "api",
-]
+[workspace.dependencies]
+database = { path = "lib/database" }
+utils = { path = "lib/utils" }
+axum = { version = "0.6.18", features = ["macros", "headers", "ws"] }
+serde_json = "1.0.102"
+serde = "1.0.171"
+jwt = "0.16.0"
+bitfield-struct = "0.5.4"
+reqwest = { version = "0.11", features = ["json"] }
+uuid = { version = "1.4.0", features = ["v4", "fast-rng", "macro-diagnostics"] }
+hmac = "0.12.1"
+sha2 = "0.10.7"
+sqlx = { version = "0.7", features = [ "runtime-tokio", "tls-native-tls", "mysql", "macros", "time" ] }

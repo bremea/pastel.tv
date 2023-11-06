@@ -42,22 +42,17 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "axum-extra",
- "base64ct",
- "bcrypt",
  "bitfield-struct",
+ "database",
  "dotenv",
- "hmac",
- "jwt",
- "mailchecker",
  "rand",
  "reqwest",
  "serde",
- "serde_json",
- "sha2",
  "sqlx",
  "tokio",
  "tower",
  "tower-http",
+ "utils",
  "uuid",
 ]
 
@@ -408,6 +403,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2e66c9d817f1720209181c316d28635c050fa304f9c79e47a520882661b7308"
 
 [[package]]
+name = "database"
+version = "0.1.0"
+dependencies = [
+ "base64ct",
+ "bitfield-struct",
+ "hmac",
+ "mailchecker",
+ "reqwest",
+ "serde",
+ "sha2",
+ "sqlx",
+ "utils",
+ "uuid",
+]
+
+[[package]]
 name = "der"
 version = "0.7.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -635,6 +646,10 @@ dependencies = [
  "pin-utils",
  "slab",
 ]
+
+[[package]]
+name = "gateway"
+version = "0.1.0"
 
 [[package]]
 name = "generic-array"
@@ -2257,6 +2272,18 @@ name = "utf-8"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "09cc8ee72d2a9becf2f2febe0205bbed8fc6615b7cb429ad062dc7b7ddd036a9"
+
+[[package]]
+name = "utils"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "bcrypt",
+ "hmac",
+ "jwt",
+ "serde",
+ "sha2",
+]
 
 [[package]]
 name = "uuid"

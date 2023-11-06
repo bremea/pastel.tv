@@ -3,7 +3,7 @@ use sha2::{Digest, Sha256};
 use sqlx::{MySql, Pool};
 use uuid::Uuid;
 
-use crate::{middleware::auth::sign_jwt, util::errors::ApiError};
+use utils::{jwt::sign_jwt, errors::ApiError};
 
 pub async fn new_refresh_token(user_id: &str, database: &Pool<MySql>) -> Result<String, ApiError> {
     // generate token uuid
