@@ -8,6 +8,8 @@ importers:
 
   .: {}
 
+  assets: {}
+
   client/web:
     devDependencies:
       '@sveltejs/adapter-auto':
