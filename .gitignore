@@ -4,3 +4,4 @@ build
 target
 **/*/.env
 .env
+pnpm-lock.yaml
