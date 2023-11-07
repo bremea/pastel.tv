@@ -4,11 +4,11 @@ import { callApi } from './apiRequest';
 export const checkEmail = async (email: string) =>
 	await callApi<EmailInfo>('/account/exists', 'POST', { email });
 
-export const sendEmailVerify = async (email: string, name: string) =>
-	await callApi<undefined>('/account/verify', 'POST', { email, name });
+export const sendEmailVerify = async (email: string, name: string, betaCode: string) =>
+	await callApi<undefined>('/account/verify', 'POST', { email, name, beta_code: betaCode });
 
-export const register = async (email: string, name: string, password: string, otp: string) =>
-	await callApi<LoginResult>('/account/new', 'POST', { email, name, password, otp });
+export const register = async (email: string, name: string, password: string, otp: string, betaCode: string) =>
+	await callApi<LoginResult>('/account/new', 'POST', { email, name, password, otp, beta_code: betaCode });
 
 export const login = async (email: string, password: string) =>
 	await callApi<LoginResult>('/account/login', 'POST', { email, password });

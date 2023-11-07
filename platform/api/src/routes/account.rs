@@ -14,7 +14,8 @@ use serde::{Deserialize, Serialize};
 use sqlx::{MySql, Pool};
 use utils::{
     errors::{catch_internal_error, ApiError, JsonIncoming},
-    password, jwt::VerifyTokenResult,
+    jwt::VerifyTokenResult,
+    password,
 };
 use uuid::Uuid;
 
@@ -48,6 +49,9 @@ pub async fn send_email_verification(
 ) -> Result<(), (StatusCode, Json<ApiError>)> {
     // check for legit email address
     catch_internal_error(email::check_for_valid_email_address(&payload.email))?;
+
+    // check for valid beta code
+    catch_internal_error(email::test_beta_code(&payload.beta_code, &database).await)?;
 
     // generate code
     let email_code = format!(
@@ -156,6 +160,10 @@ pub async fn register_account(
             }),
         ));
     }
+
+    // check beta code, and revoke to prevent re-use
+    catch_internal_error(email::test_beta_code(&payload.beta_code, &database).await)?;
+    catch_internal_error(email::revoke_beta_code(&payload.beta_code, &database).await)?;
 
     // check OTP is correct
     catch_internal_error(email::verify_email(&payload.email, &payload.otp, &database).await)?;
@@ -309,6 +317,7 @@ pub struct CheckEmailOptions {
 pub struct SendEmailVerificationOptions {
     email: String,
     name: String,
+    beta_code: String,
 }
 
 #[derive(Deserialize)]
@@ -317,6 +326,7 @@ pub struct RegisterOptions {
     name: String,
     password: String,
     otp: String,
+    beta_code: String,
 }
 
 #[derive(Deserialize)]

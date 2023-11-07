@@ -25,6 +25,7 @@
 		email: '',
 		password: '',
 		confirmPassword: '',
+		betaCode: '',
 		name: '',
 		otp: ''
 	};
@@ -68,8 +69,12 @@
 	}
 
 	async function sendEmailConf() {
-		if (loginInfo.password === undefined || loginInfo.password === '') {
-			error = 'Enter a password';
+		if (loginInfo.password?.length < 8) {
+			error = 'Enter a password (at least 8 characters)';
+			return;
+		}
+		if (loginInfo.name?.length < 1) {
+			error = 'Enter your name';
 			return;
 		}
 		if (loginInfo.password != loginInfo.confirmPassword) {
@@ -77,7 +82,7 @@
 			return;
 		}
 
-		const res = await caller.sendEmailVerify(loginInfo.email, loginInfo.name);
+		const res = await caller.sendEmailVerify(loginInfo.email, loginInfo.name, loginInfo.betaCode);
 		if (res?.error) {
 			error = res.message;
 		} else {
@@ -86,7 +91,7 @@
 	}
 
 	async function login() {
-		if (loginInfo.password === undefined || loginInfo.password === '') {
+		if (loginInfo.password?.length < 0) {
 			error = 'Enter a password';
 			return;
 		}
@@ -107,7 +112,7 @@
 	}
 
 	async function register() {
-		if (loginInfo.otp === undefined || loginInfo.otp === '') {
+		if (loginInfo.otp?.length < 1) {
 			error = 'Enter a code';
 			return;
 		}
@@ -115,7 +120,8 @@
 			loginInfo.email,
 			loginInfo.name,
 			loginInfo.password,
-			loginInfo.otp
+			loginInfo.otp,
+			loginInfo.betaCode
 		);
 		if (!res || res.error) {
 			error = res?.message;
@@ -170,6 +176,7 @@
 								placeholder="Confirm password"
 								autocomplete="new-password"
 							/>
+							<TextInput bind:value={loginInfo.betaCode} placeholder="Beta code" />
 						{/if}
 					</div>
 				{/if}
