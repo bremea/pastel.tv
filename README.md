@@ -2,6 +2,9 @@
 
 This repository contains the entire source code for [pastel.tv](https://pastel.tv). The production website is run on Vercel, with the backend being hosted on Google Cloud and the database in Planetscale. However, the code is platform agnostic, and should be able to run anywhere.
 
+# About
+pastel.tv is a online service that provides access to an instance of Android TV running in the cloud. This cloud TV can be easily moved between servers, allowing it to run in any region supported by the cloud provider. It exposes a WebRTC stream, allowing users to view and share content live.
+
 # Tech
 pastel.tv is built with the following tech:
 - Rust (all backend services)
